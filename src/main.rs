@@ -108,59 +108,6 @@ fn main() {
     add_data(&mut mt, &String::from("fos"));
 
     println!("{:#?}", mt);
-
-    // println!(
-    //     "{} {} {} {}",
-    //     l1.hash().unwrap(),
-    //     l2.hash().unwrap(),
-    //     l3.hash().unwrap(),
-    //     l4.hash().unwrap()
-    // );
-
-    // let mut hash0 = Node {
-    //     parent: None,
-    //     left: Box::new(l1),
-    //     right: Box::new(l2),
-    //     hash: None,
-    // };
-
-    // let mut hash1 = Node {
-    //     parent: None,
-    //     left: Box::new(l3),
-    //     right: Box::new(l4),
-    //     hash: None,
-    // };
-
-    // println!("{} {}", hash0.hash().unwrap(), hash1.hash().unwrap());
-
-    // let mut root_hash = Node {
-    //     parent: None,
-    //     left: Box::new(hash0),
-    //     right: Box::new(hash1),
-    //     hash: None,
-    // };
-
-    // println!("{}", root_hash.hash().unwrap())
-
-    // let hash0_0 = Node {
-    //     left: l1,
-    //     right: l2,
-    //     hash: hash(&l1.data),
-    // };
-    // let hash0_1 = hash(&l2);
-    // let hash1_0 = hash(&l3);
-    // let hash1_1 = hash(&l4);
-
-    // let hash0 = hash(&format!("{}{}", hash0_0, hash0_1));
-    // let hash1 = hash(&format!("{}{}", hash1_0, hash1_1));
-
-    // println!("{}", hash0);
-    // println!("{}", hash1);
-
-    // let root_hash = hash(&format!("{}{}", hash0, hash1));
-
-    // println!("{}", root_hash);
-    // println!("{}", root_hash);
 }
 
 fn calculate_hash(data: &String) -> u64 {
