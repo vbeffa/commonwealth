@@ -1,88 +1,146 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-trait Hashable {
-    fn hash(&mut self) -> Option<u64>;
+#[derive(Debug)]
+struct MerkleTree {
+    depth: usize,
+    root_hash: u64,
+    data: Vec<Leaf>,
+    tree: Vec<Vec<Node>>,
+    index: usize,
 }
 
+#[derive(Default, Debug)]
 struct Node {
-    left: Box<dyn Hashable>,
-    right: Box<dyn Hashable>,
-    // memoize hash
-    hash: Option<u64>,
+    hash: u64,
 }
 
+#[derive(Default, Debug)]
 struct Leaf {
     data: String,
-    // memoize hash
-    hash: Option<u64>,
 }
 
-impl Hashable for Node {
-    fn hash(&mut self) -> Option<u64> {
-        match self.hash {
-            None => match (self.left.hash(), self.right.hash()) {
-                (Some(h1), Some(h2)) => self.hash = Some(calculate_hash(&format!("{}{}", h1, h2))),
-                _ => ()
-            },
-            _ => ()
-            // None => self.hash = Some(calculate_hash(&format!("{}{}", &self.left.hash(), &self.right.hash()))),
+fn new_tree(depth: usize, root_hash: u64) -> MerkleTree {
+    let mut mt = MerkleTree {
+        depth: depth,
+        root_hash: root_hash,
+        data: Vec::with_capacity(usize::pow(2, depth as u32)),
+        tree: Vec::with_capacity(depth + 1),
+        index: 0,
+    };
+
+    // initialize data with zero values
+    mt.data.resize_with(usize::pow(2, depth as u32), Default::default);
+    // allocate space for tree
+    mt.tree.resize_with(depth + 1, Default::default);
+    // initialize leaf hash with zero values
+    mt.tree[depth].resize_with(usize::pow(2, depth as u32), || Node {
+        hash: calculate_hash(&String::from("")),
+    });
+
+    // // build leaf nodes with zero data values
+    // for i in 0..(2 << depth) {
+    //     mt.tree[depth][i].hash = calculate_hash(&mt.data[i].data);
+    // }
+
+    // println!("{:#?}", mt);
+
+    // build intermediate nodes up to root
+    for d in (0..depth).rev() {
+        mt.tree[d].resize_with(usize::pow(2, d as u32), Default::default);
+        // let mut level = Vec::<Node>::new();
+        // level.resize_with(2 << d, Default::default);
+        // println!("d: {}, 2 << (d - 1): {}", d, 2 << (d - 1));
+        for i in 0..(usize::pow(2, d as u32)) {
+            // println!("d = {} i = {}", d, i);
+            mt.tree[d][i] = Node {
+                hash: calculate_hash(&format!(
+                    "{}{}",
+                    mt.tree[d + 1][2 * i].hash,
+                    mt.tree[d + 1][2 * i + 1].hash
+                )),
+            };
+            // println!("{:#?}", mt.tree[d]);
         }
-        self.hash
+        // mt.tree.push(level);
+        println!("{:#?}", mt.tree);
     }
+
+    mt
 }
 
-impl Hashable for Leaf {
-    fn hash(&mut self) -> Option<u64> {
-        match self.hash {
-            None => self.hash = Some(calculate_hash(&self.data)),
-            _ => ()
-        }
-        self.hash
+fn add_data(mt: &mut MerkleTree, data: &String) {
+    // println!("adding {}", data);
+    if mt.index == usize::pow(2, mt.depth as u32) {
+        return; // error
     }
+    mt.data[mt.index].data = data.to_string();
+    mt.tree[mt.depth][mt.index].hash = calculate_hash(&data);
+
+    let mut i = mt.index;
+    let mut d = mt.depth;
+    while i % 2 == 1 {
+        i = i / 2;
+        d = d - 1;
+        mt.tree[d][i] = Node {
+            hash: calculate_hash(&format!(
+                "{}{}",
+                mt.tree[d + 1][2 * i].hash,
+                mt.tree[d + 1][2 * i + 1].hash
+            )),
+        };
+    }
+
+    mt.index = mt.index + 1;
 }
 
 fn main() {
-    let mut l1 = Leaf {
-        data: String::from("foo"),
-        hash: None,
-    };
-    let mut l2 = Leaf {
-        data: String::from("bar"),
-        hash: None,
-    };
-    let mut l3 = Leaf {
-        data: String::from("fiz"),
-        hash: None,
-    };
-    let mut l4 = Leaf {
-        data: String::from("baz"),
-        hash: None,
-    };
+    // println!("{} {}", 2 << 0, 2 << 1);
+    let mut mt = new_tree(3, 1556255166675498662);
 
-    println!("{} {} {} {}", l1.hash().unwrap(), l2.hash().unwrap(), l3.hash().unwrap(), l4.hash().unwrap());
+    add_data(&mut mt, &String::from("foo"));
+    add_data(&mut mt, &String::from("bar"));
+    add_data(&mut mt, &String::from("baz"));
+    add_data(&mut mt, &String::from("yup"));
+    add_data(&mut mt, &String::from("maw"));
+    add_data(&mut mt, &String::from("wap"));
+    add_data(&mut mt, &String::from("pit"));
+    add_data(&mut mt, &String::from("fos"));
 
-    let mut hash0 = Node {
-        left: Box::new(l1),
-        right: Box::new(l2),
-        hash: None,
-    };
+    println!("{:#?}", mt);
 
-    let mut hash1 = Node {
-        left: Box::new(l3),
-        right: Box::new(l4),
-        hash: None,
-    };
+    // println!(
+    //     "{} {} {} {}",
+    //     l1.hash().unwrap(),
+    //     l2.hash().unwrap(),
+    //     l3.hash().unwrap(),
+    //     l4.hash().unwrap()
+    // );
 
-    println!("{} {}", hash0.hash().unwrap(), hash1.hash().unwrap());
+    // let mut hash0 = Node {
+    //     parent: None,
+    //     left: Box::new(l1),
+    //     right: Box::new(l2),
+    //     hash: None,
+    // };
 
-    let mut root_hash = Node {
-        left: Box::new(hash0),
-        right: Box::new(hash1),
-        hash: None,
-    };
+    // let mut hash1 = Node {
+    //     parent: None,
+    //     left: Box::new(l3),
+    //     right: Box::new(l4),
+    //     hash: None,
+    // };
 
-    println!("{}", root_hash.hash().unwrap())
+    // println!("{} {}", hash0.hash().unwrap(), hash1.hash().unwrap());
+
+    // let mut root_hash = Node {
+    //     parent: None,
+    //     left: Box::new(hash0),
+    //     right: Box::new(hash1),
+    //     hash: None,
+    // };
+
+    // println!("{}", root_hash.hash().unwrap())
 
     // let hash0_0 = Node {
     //     left: l1,
