@@ -185,6 +185,8 @@ mod tests {
         println!("{:#?}", mt.generate_proof(3));
         assert_eq!(mt.generate_proof(0), [1, 1]);
         assert_eq!(mt.generate_proof(1), [1, 0]);
+        assert_eq!(mt.generate_proof(2), [0, 3]);
+        assert_eq!(mt.generate_proof(3), [0, 2]);
         Ok(())
     }
 }
