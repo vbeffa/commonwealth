@@ -19,18 +19,19 @@ impl MerkleTree {
             tree: Vec::with_capacity(depth + 1),
             index: 0,
         };
-    
+
         // initialize data with zero values
-        mt.data.resize_with(usize::pow(2, depth as u32), Default::default);
+        mt.data
+            .resize_with(usize::pow(2, depth as u32), Default::default);
         // allocate space for tree
         mt.tree.resize_with(depth + 1, Default::default);
         // initialize leaf hash with zero values
         mt.tree[depth].resize_with(usize::pow(2, depth as u32), || Node {
             hash: calculate_hash(&String::from("")),
         });
-    
+
         // println!("{:#?}", mt);
-    
+
         // build intermediate nodes up to root
         for d in (0..depth).rev() {
             mt.tree[d].resize_with(usize::pow(2, d as u32), Default::default);
@@ -46,11 +47,10 @@ impl MerkleTree {
                 };
                 // println!("{:#?}", mt.tree[d]);
             }
-            // mt.tree.push(level);
-            println!("{:#?}", mt.tree);
+            // println!("{:#?}", mt.tree);
         }
-    
-        mt        
+
+        mt
     }
 
     fn add_data(&mut self, data: &String) {
@@ -59,7 +59,7 @@ impl MerkleTree {
         }
         self.data[self.index].data = data.to_string();
         self.tree[self.depth][self.index].hash = calculate_hash(&data);
-    
+
         let mut i = self.index;
         let mut d = self.depth;
         while i % 2 == 1 {
@@ -73,8 +73,27 @@ impl MerkleTree {
                 )),
             };
         }
-    
+
         self.index = self.index + 1;
+    }
+
+    fn generate_proof(&mut self, index: usize) -> Vec<usize> {
+        if index >= self.index {
+            return Vec::new(); // error
+        }
+
+        let mut proof = Vec::with_capacity(self.depth);
+        proof.resize_with(self.depth, Default::default);
+
+        let mut i = index;
+        for d in (0..self.depth).rev() {
+            // println!("{} {} {}", i, d, i % 2);
+            proof[d] = if i % 2 == 0 { i + 1 } else { i - 1 };
+            // println!("{}", proof[d]);
+            i = i / 2;
+        }
+
+        proof
     }
 }
 
@@ -89,7 +108,6 @@ struct Leaf {
 }
 
 fn main() {
-    // println!("{} {}", 2 << 0, 2 << 1);
     let mut mt = MerkleTree::new(3, 1556255166675498662);
 
     mt.add_data(&String::from("foo"));
@@ -102,10 +120,65 @@ fn main() {
     mt.add_data(&String::from("fos"));
 
     println!("{:#?}", mt);
+    for i in 0..8 {
+        println!("{:#?}", mt.generate_proof(i));
+    }
 }
 
 fn calculate_hash(data: &String) -> u64 {
     let mut s = DefaultHasher::new();
     data.hash(&mut s);
     s.finish()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merkle_depth_0() -> Result<(), String> {
+        let mut mt = MerkleTree::new(0, 4506850079084802999);
+        mt.add_data(&String::from("foo"));
+        println!("{:#?}", mt);
+        assert_eq!(mt.tree[0][0].hash, mt.root_hash);
+        Ok(())
+    }
+
+    #[test]
+    fn test_merkle_depth_1() -> Result<(), String> {
+        let mut mt = MerkleTree::new(1, 17075777630381501106);
+        mt.add_data(&String::from("foo"));
+        mt.add_data(&String::from("bar"));
+        println!("{:#?}", mt);
+        assert_eq!(mt.tree[0][0].hash, mt.root_hash);
+        Ok(())
+    }
+
+    #[test]
+    fn test_merkle_proof_depth_1() -> Result<(), String> {
+        let mut mt = MerkleTree::new(1, 17075777630381501106);
+        mt.add_data(&String::from("foo"));
+        mt.add_data(&String::from("bar"));
+        println!("{:#?}", mt.generate_proof(0));
+        assert_eq!(mt.generate_proof(0), [1]);
+        assert_eq!(mt.generate_proof(1), [0]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_merkle_proof_depth_2() -> Result<(), String> {
+        let mut mt = MerkleTree::new(2, 4778819754073447529);
+        mt.add_data(&String::from("foo"));
+        mt.add_data(&String::from("bar"));
+        mt.add_data(&String::from("baz"));
+        mt.add_data(&String::from("yup"));
+        println!("{:#?}", mt);
+        println!("{:#?}", mt.generate_proof(0));
+        println!("{:#?}", mt.generate_proof(1));
+        println!("{:#?}", mt.generate_proof(2));
+        println!("{:#?}", mt.generate_proof(3));
+        assert_eq!(mt.generate_proof(0), [1, 1]);
+        assert_eq!(mt.generate_proof(1), [1, 0]);
+        Ok(())
+    }
 }
