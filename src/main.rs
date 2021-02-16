@@ -77,12 +77,18 @@ impl MerkleTree {
         self.index = self.index + 1;
     }
 
+    // Returns a vec of size depth - 1 with proof[i] indicating
+    // the index of the node at depth i + 1 that is needed for proving
+    // membership of data at element index.
+    //
+    // The root element at depth 0 is omitted so the depths are offset
+    // by 1 (i.e., proof[0] contains the index of the node at depth 1).
     fn generate_proof(&mut self, index: usize) -> Vec<usize> {
         if index >= self.index {
             return Vec::new(); // error
         }
 
-        let mut proof = Vec::with_capacity(self.depth);
+        let mut proof = Vec::with_capacity(self.depth - 1);
         proof.resize_with(self.depth, Default::default);
 
         let mut i = index;
