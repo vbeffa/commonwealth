@@ -77,27 +77,32 @@ impl MerkleTree {
         self.index = self.index + 1;
     }
 
-    // Returns a vec of size depth - 1 with proof[i] indicating
-    // the index of the node at depth i + 1 that is needed for proving
+    // Returns a vec of size depth + 1 with proof[i] indicating
+    // the index of the node at depth i that is needed for proving
     // membership of data at element index.
     //
-    // The root element at depth 0 is omitted so the depths are offset
-    // by 1 (i.e., proof[0] contains the index of the node at depth 1).
+    // The root element at depth 0 is included so that the index into
+    // the proof vector corresponds to the depth. So, for example,
+    // if the tree has depth 3, then proof[2] contains the index
+    // of the node at depth 2 needed for the proof.
     fn generate_proof(&mut self, index: usize) -> Vec<usize> {
         if index >= self.index {
             return Vec::new(); // error
         }
 
-        let mut proof = Vec::with_capacity(self.depth - 1);
-        proof.resize_with(self.depth, Default::default);
+        let mut proof = Vec::with_capacity(self.depth + 1);
+        proof.resize_with(self.depth + 1, Default::default);
 
         let mut i = index;
         for d in (0..self.depth).rev() {
-            // println!("{} {} {}", i, d, i % 2);
-            proof[d] = if i % 2 == 0 { i + 1 } else { i - 1 };
-            // println!("{}", proof[d]);
+            println!("{} {} {}", i, d, i % 2);
+            proof[d + 1] = if i % 2 == 0 { i + 1 } else { i - 1 };
+            println!("{}", proof[d]);
             i = i / 2;
         }
+
+        // add root node
+        proof[0] = 0;
 
         proof
     }
@@ -171,8 +176,8 @@ mod tests {
         mt.add_data(&String::from("foo"));
         mt.add_data(&String::from("bar"));
 
-        assert_eq!(mt.generate_proof(0), [1]);
-        assert_eq!(mt.generate_proof(1), [0]);
+        assert_eq!(mt.generate_proof(0), [0, 1]);
+        assert_eq!(mt.generate_proof(1), [0, 0]);
 
         Ok(())
     }
@@ -186,10 +191,10 @@ mod tests {
         mt.add_data(&String::from("baz"));
         mt.add_data(&String::from("yup"));
 
-        assert_eq!(mt.generate_proof(0), [1, 1]);
-        assert_eq!(mt.generate_proof(1), [1, 0]);
-        assert_eq!(mt.generate_proof(2), [0, 3]);
-        assert_eq!(mt.generate_proof(3), [0, 2]);
+        assert_eq!(mt.generate_proof(0), [0, 1, 1]);
+        assert_eq!(mt.generate_proof(1), [0, 1, 0]);
+        assert_eq!(mt.generate_proof(2), [0, 0, 3]);
+        assert_eq!(mt.generate_proof(3), [0, 0, 2]);
 
         Ok(())
     }
@@ -207,14 +212,14 @@ mod tests {
         mt.add_data(&String::from("pit"));
         mt.add_data(&String::from("fos"));
 
-        assert_eq!(mt.generate_proof(0), [1, 1, 1]);
-        assert_eq!(mt.generate_proof(1), [1, 1, 0]);
-        assert_eq!(mt.generate_proof(2), [1, 0, 3]);
-        assert_eq!(mt.generate_proof(3), [1, 0, 2]);
-        assert_eq!(mt.generate_proof(4), [0, 3, 5]);
-        assert_eq!(mt.generate_proof(5), [0, 3, 4]);
-        assert_eq!(mt.generate_proof(6), [0, 2, 7]);
-        assert_eq!(mt.generate_proof(7), [0, 2, 6]);
+        assert_eq!(mt.generate_proof(0), [0, 1, 1, 1]);
+        assert_eq!(mt.generate_proof(1), [0, 1, 1, 0]);
+        assert_eq!(mt.generate_proof(2), [0, 1, 0, 3]);
+        assert_eq!(mt.generate_proof(3), [0, 1, 0, 2]);
+        assert_eq!(mt.generate_proof(4), [0, 0, 3, 5]);
+        assert_eq!(mt.generate_proof(5), [0, 0, 3, 4]);
+        assert_eq!(mt.generate_proof(6), [0, 0, 2, 7]);
+        assert_eq!(mt.generate_proof(7), [0, 0, 2, 6]);
 
         Ok(())
     }
