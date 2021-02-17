@@ -10,6 +10,16 @@ struct MerkleTree {
     index: usize,
 }
 
+#[derive(Default, Debug)]
+struct Node {
+    hash: u64,
+}
+
+#[derive(Default, Debug)]
+struct Leaf {
+    data: String,
+}
+
 impl MerkleTree {
     fn new(depth: usize, root_hash: u64) -> MerkleTree {
         let mut mt = MerkleTree {
@@ -111,30 +121,20 @@ impl MerkleTree {
         proof
     }
 
-    // fn verify(&self, index: usize) -> bool {
-    //     let proof = self.generate_proof(index);
-    //     let mut hash = self.tree[self.depth][index].hash;
+    fn verify(&self, data: &String, proof: &Vec<(u64, bool)>) -> bool {
+        let mut hash = calculate_hash(data); // self.tree[self.depth][index].hash;
 
-    //     for d in (1..self.depth + 1).rev() {
-    //         hash = calculate_hash(&format!(
-    //             "{}{}",
-    //             self.tree[d + 1][2 * i].hash,
-    //             self.tree[d + 1][2 * i + 1].hash
-    //         ));
-    //     }
+        for d in (1..self.depth + 1).rev() {
+            println!("{}", hash);
+            if proof[d].1 {
+                hash = calculate_hash(&format!("{}{}", hash, proof[d].0));
+            } else {
+                hash = calculate_hash(&format!("{}{}", proof[d].0, hash));
+            }
+        }
 
-    //     false
-    // }
-}
-
-#[derive(Default, Debug)]
-struct Node {
-    hash: u64,
-}
-
-#[derive(Default, Debug)]
-struct Leaf {
-    data: String,
+        hash == proof[0].0
+    }
 }
 
 fn main() {
@@ -151,7 +151,8 @@ fn main() {
 
     println!("{:#?}", mt);
     for i in 0..8 {
-        println!("proof: {:#?}", mt.generate_proof(i));
+        let proof = mt.generate_proof(i);
+        println!("proof: {:#?} verify: {}", proof, mt.verify(&mt.data[i].data, &proof));
     }
 }
 
@@ -241,6 +242,77 @@ mod tests {
         assert_eq!(mt.generate_proof(5), [(1556255166675498662, true), (4778819754073447529, false), (6756623144268557643, true), (5587210449854392903, false)]);
         assert_eq!(mt.generate_proof(6), [(1556255166675498662, true), (4778819754073447529, false), (10865386958110225586, false), (9147698590242891024, true)]);
         assert_eq!(mt.generate_proof(7), [(1556255166675498662, true), (4778819754073447529, false), (10865386958110225586, false), (10714775279812270610, false)]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_merkle_verify_depth_1() -> Result<(), String> {
+        let mut mt = MerkleTree::new(1, 17075777630381501106);
+
+        mt.add_data(&String::from("foo"));
+        mt.add_data(&String::from("bar"));
+
+        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(0)), true);
+        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(1)), true);
+        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(0)), false);
+        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(1)), false);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_merkle_verify_depth_2() -> Result<(), String> {
+        let mut mt = MerkleTree::new(2, 4778819754073447529);
+
+        mt.add_data(&String::from("foo"));
+        mt.add_data(&String::from("bar"));
+        mt.add_data(&String::from("baz"));
+        mt.add_data(&String::from("yup"));
+
+        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(0)), true);
+        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(1)), true);
+        assert_eq!(mt.verify(&String::from("baz"), &mt.generate_proof(2)), true);
+        assert_eq!(mt.verify(&String::from("yup"), &mt.generate_proof(3)), true);
+        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(0)), false);
+        assert_eq!(mt.verify(&String::from("baz"), &mt.generate_proof(1)), false);
+        assert_eq!(mt.verify(&String::from("yup"), &mt.generate_proof(2)), false);
+        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(3)), false);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_merkle_verify_depth_3() -> Result<(), String> {
+        let mut mt = MerkleTree::new(3, 1556255166675498662);
+
+        mt.add_data(&String::from("foo"));
+        mt.add_data(&String::from("bar"));
+        mt.add_data(&String::from("baz"));
+        mt.add_data(&String::from("yup"));
+        mt.add_data(&String::from("maw"));
+        mt.add_data(&String::from("wap"));
+        mt.add_data(&String::from("pit"));
+        mt.add_data(&String::from("fos"));
+
+        println!("{:#?}", mt);
+
+        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(0)), true);
+        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(1)), true);
+        assert_eq!(mt.verify(&String::from("baz"), &mt.generate_proof(2)), true);
+        assert_eq!(mt.verify(&String::from("yup"), &mt.generate_proof(3)), true);
+        assert_eq!(mt.verify(&String::from("maw"), &mt.generate_proof(4)), true);
+        assert_eq!(mt.verify(&String::from("wap"), &mt.generate_proof(5)), true);
+        assert_eq!(mt.verify(&String::from("pit"), &mt.generate_proof(6)), true);
+        assert_eq!(mt.verify(&String::from("fos"), &mt.generate_proof(7)), true);
+        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(0)), false);
+        assert_eq!(mt.verify(&String::from("baz"), &mt.generate_proof(1)), false);
+        assert_eq!(mt.verify(&String::from("yup"), &mt.generate_proof(2)), false);
+        assert_eq!(mt.verify(&String::from("maw"), &mt.generate_proof(3)), false);
+        assert_eq!(mt.verify(&String::from("wap"), &mt.generate_proof(4)), false);
+        assert_eq!(mt.verify(&String::from("pit"), &mt.generate_proof(5)), false);
+        assert_eq!(mt.verify(&String::from("fos"), &mt.generate_proof(6)), false);
+        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(7)), false);
 
         Ok(())
     }
