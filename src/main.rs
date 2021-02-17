@@ -110,7 +110,11 @@ impl MerkleTree {
         // add non-root hashes
         for d in (1..self.depth + 1).rev() {
             // println!("i: {} d: {} i % 2: {}", i, d, i % 2);
-            proof[d] = if i % 2 == 0 { (self.tree[d][i + 1].hash, true) } else { (self.tree[d][i - 1].hash, false) };
+            proof[d] = if i % 2 == 0 {
+                (self.tree[d][i + 1].hash, true)
+            } else {
+                (self.tree[d][i - 1].hash, false)
+            };
             // println!("proof: {:#?}", proof);
             i = i / 2;
         }
@@ -152,7 +156,11 @@ fn main() {
     println!("{:#?}", mt);
     for i in 0..8 {
         let proof = mt.generate_proof(i);
-        println!("proof: {:#?} verify: {}", proof, mt.verify(&mt.data[i].data, &proof));
+        println!(
+            "proof: {:#?} verify: {}",
+            proof,
+            mt.verify(&mt.data[i].data, &proof)
+        );
     }
 }
 
@@ -196,8 +204,14 @@ mod tests {
         mt.add_data(&String::from("foo"));
         mt.add_data(&String::from("bar"));
 
-        assert_eq!(mt.generate_proof(0), [(17075777630381501106, true), (3676438629107045207, true)]);
-        assert_eq!(mt.generate_proof(1), [(17075777630381501106, true), (4506850079084802999, false)]);
+        assert_eq!(
+            mt.generate_proof(0),
+            [(17075777630381501106, true), (3676438629107045207, true)]
+        );
+        assert_eq!(
+            mt.generate_proof(1),
+            [(17075777630381501106, true), (4506850079084802999, false)]
+        );
 
         Ok(())
     }
@@ -211,10 +225,38 @@ mod tests {
         mt.add_data(&String::from("baz"));
         mt.add_data(&String::from("yup"));
 
-        assert_eq!(mt.generate_proof(0), [(4778819754073447529, true), (9268692565628018440, true), (3676438629107045207, true)]);
-        assert_eq!(mt.generate_proof(1), [(4778819754073447529, true), (9268692565628018440, true), (4506850079084802999, false)]);
-        assert_eq!(mt.generate_proof(2), [(4778819754073447529, true), (17075777630381501106, false), (1968634300370677998, true)]);
-        assert_eq!(mt.generate_proof(3), [(4778819754073447529, true), (17075777630381501106, false), (16260972211344176173, false)]);
+        assert_eq!(
+            mt.generate_proof(0),
+            [
+                (4778819754073447529, true),
+                (9268692565628018440, true),
+                (3676438629107045207, true)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(1),
+            [
+                (4778819754073447529, true),
+                (9268692565628018440, true),
+                (4506850079084802999, false)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(2),
+            [
+                (4778819754073447529, true),
+                (17075777630381501106, false),
+                (1968634300370677998, true)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(3),
+            [
+                (4778819754073447529, true),
+                (17075777630381501106, false),
+                (16260972211344176173, false)
+            ]
+        );
 
         Ok(())
     }
@@ -234,14 +276,78 @@ mod tests {
 
         println!("{:#?}", mt);
 
-        assert_eq!(mt.generate_proof(0), [(1556255166675498662, true), (1292560851973962312, true), (9268692565628018440, true), (3676438629107045207, true)]);
-        assert_eq!(mt.generate_proof(1), [(1556255166675498662, true), (1292560851973962312, true), (9268692565628018440, true), (4506850079084802999, false)]);
-        assert_eq!(mt.generate_proof(2), [(1556255166675498662, true), (1292560851973962312, true), (17075777630381501106, false), (1968634300370677998, true)]);
-        assert_eq!(mt.generate_proof(3), [(1556255166675498662, true), (1292560851973962312, true), (17075777630381501106, false), (16260972211344176173, false)]);
-        assert_eq!(mt.generate_proof(4), [(1556255166675498662, true), (4778819754073447529, false), (6756623144268557643, true), (14416090190412621920, true)]);
-        assert_eq!(mt.generate_proof(5), [(1556255166675498662, true), (4778819754073447529, false), (6756623144268557643, true), (5587210449854392903, false)]);
-        assert_eq!(mt.generate_proof(6), [(1556255166675498662, true), (4778819754073447529, false), (10865386958110225586, false), (9147698590242891024, true)]);
-        assert_eq!(mt.generate_proof(7), [(1556255166675498662, true), (4778819754073447529, false), (10865386958110225586, false), (10714775279812270610, false)]);
+        assert_eq!(
+            mt.generate_proof(0),
+            [
+                (1556255166675498662, true),
+                (1292560851973962312, true),
+                (9268692565628018440, true),
+                (3676438629107045207, true)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(1),
+            [
+                (1556255166675498662, true),
+                (1292560851973962312, true),
+                (9268692565628018440, true),
+                (4506850079084802999, false)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(2),
+            [
+                (1556255166675498662, true),
+                (1292560851973962312, true),
+                (17075777630381501106, false),
+                (1968634300370677998, true)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(3),
+            [
+                (1556255166675498662, true),
+                (1292560851973962312, true),
+                (17075777630381501106, false),
+                (16260972211344176173, false)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(4),
+            [
+                (1556255166675498662, true),
+                (4778819754073447529, false),
+                (6756623144268557643, true),
+                (14416090190412621920, true)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(5),
+            [
+                (1556255166675498662, true),
+                (4778819754073447529, false),
+                (6756623144268557643, true),
+                (5587210449854392903, false)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(6),
+            [
+                (1556255166675498662, true),
+                (4778819754073447529, false),
+                (10865386958110225586, false),
+                (9147698590242891024, true)
+            ]
+        );
+        assert_eq!(
+            mt.generate_proof(7),
+            [
+                (1556255166675498662, true),
+                (4778819754073447529, false),
+                (10865386958110225586, false),
+                (10714775279812270610, false)
+            ]
+        );
 
         Ok(())
     }
@@ -255,8 +361,14 @@ mod tests {
 
         assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(0)), true);
         assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(1)), true);
-        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(0)), false);
-        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(1)), false);
+        assert_eq!(
+            mt.verify(&String::from("bar"), &mt.generate_proof(0)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("foo"), &mt.generate_proof(1)),
+            false
+        );
 
         Ok(())
     }
@@ -274,10 +386,22 @@ mod tests {
         assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(1)), true);
         assert_eq!(mt.verify(&String::from("baz"), &mt.generate_proof(2)), true);
         assert_eq!(mt.verify(&String::from("yup"), &mt.generate_proof(3)), true);
-        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(0)), false);
-        assert_eq!(mt.verify(&String::from("baz"), &mt.generate_proof(1)), false);
-        assert_eq!(mt.verify(&String::from("yup"), &mt.generate_proof(2)), false);
-        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(3)), false);
+        assert_eq!(
+            mt.verify(&String::from("bar"), &mt.generate_proof(0)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("baz"), &mt.generate_proof(1)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("yup"), &mt.generate_proof(2)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("foo"), &mt.generate_proof(3)),
+            false
+        );
 
         Ok(())
     }
@@ -305,14 +429,38 @@ mod tests {
         assert_eq!(mt.verify(&String::from("wap"), &mt.generate_proof(5)), true);
         assert_eq!(mt.verify(&String::from("pit"), &mt.generate_proof(6)), true);
         assert_eq!(mt.verify(&String::from("fos"), &mt.generate_proof(7)), true);
-        assert_eq!(mt.verify(&String::from("bar"), &mt.generate_proof(0)), false);
-        assert_eq!(mt.verify(&String::from("baz"), &mt.generate_proof(1)), false);
-        assert_eq!(mt.verify(&String::from("yup"), &mt.generate_proof(2)), false);
-        assert_eq!(mt.verify(&String::from("maw"), &mt.generate_proof(3)), false);
-        assert_eq!(mt.verify(&String::from("wap"), &mt.generate_proof(4)), false);
-        assert_eq!(mt.verify(&String::from("pit"), &mt.generate_proof(5)), false);
-        assert_eq!(mt.verify(&String::from("fos"), &mt.generate_proof(6)), false);
-        assert_eq!(mt.verify(&String::from("foo"), &mt.generate_proof(7)), false);
+        assert_eq!(
+            mt.verify(&String::from("bar"), &mt.generate_proof(0)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("baz"), &mt.generate_proof(1)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("yup"), &mt.generate_proof(2)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("maw"), &mt.generate_proof(3)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("wap"), &mt.generate_proof(4)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("pit"), &mt.generate_proof(5)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("fos"), &mt.generate_proof(6)),
+            false
+        );
+        assert_eq!(
+            mt.verify(&String::from("foo"), &mt.generate_proof(7)),
+            false
+        );
 
         Ok(())
     }
