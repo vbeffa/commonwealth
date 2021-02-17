@@ -78,8 +78,9 @@ impl MerkleTree {
     }
 
     // Returns a vec of size depth + 1 with proof[i] containing
-    // the hash of the node at depth i that is needed for proving
-    // membership of data at element index.
+    // a tuple with the hash of the node at depth i and a boolean
+    // indicating whether the hash is left (false) or right (true)
+    // that is needed for proving membership of data at element index.
     //
     // The root hash at depth 0 is included so that the index into
     // the proof vector corresponds to the depth. So, for example,
@@ -87,7 +88,7 @@ impl MerkleTree {
     // of the node at depth 2 needed for the proof.
     //
     // TODO: memoize
-    fn generate_proof(&self, index: usize) -> Vec<u64> {
+    fn generate_proof(&self, index: usize) -> Vec<(u64, bool)> {
         if index >= self.index {
             return Vec::new(); // error
         }
@@ -99,19 +100,30 @@ impl MerkleTree {
         // add non-root hashes
         for d in (1..self.depth + 1).rev() {
             // println!("i: {} d: {} i % 2: {}", i, d, i % 2);
-            proof[d] = if i % 2 == 0 { self.tree[d][i + 1].hash } else { self.tree[d][i - 1].hash };
+            proof[d] = if i % 2 == 0 { (self.tree[d][i + 1].hash, true) } else { (self.tree[d][i - 1].hash, false) };
             // println!("proof: {:#?}", proof);
             i = i / 2;
         }
 
         // add root hash
-        proof[0] = self.root_hash;
+        proof[0] = (self.root_hash, true);
 
         proof
     }
 
     // fn verify(&self, index: usize) -> bool {
+    //     let proof = self.generate_proof(index);
+    //     let mut hash = self.tree[self.depth][index].hash;
 
+    //     for d in (1..self.depth + 1).rev() {
+    //         hash = calculate_hash(&format!(
+    //             "{}{}",
+    //             self.tree[d + 1][2 * i].hash,
+    //             self.tree[d + 1][2 * i + 1].hash
+    //         ));
+    //     }
+
+    //     false
     // }
 }
 
@@ -183,8 +195,8 @@ mod tests {
         mt.add_data(&String::from("foo"));
         mt.add_data(&String::from("bar"));
 
-        assert_eq!(mt.generate_proof(0), [17075777630381501106, 3676438629107045207]);
-        assert_eq!(mt.generate_proof(1), [17075777630381501106, 4506850079084802999]);
+        assert_eq!(mt.generate_proof(0), [(17075777630381501106, true), (3676438629107045207, true)]);
+        assert_eq!(mt.generate_proof(1), [(17075777630381501106, true), (4506850079084802999, false)]);
 
         Ok(())
     }
@@ -198,10 +210,10 @@ mod tests {
         mt.add_data(&String::from("baz"));
         mt.add_data(&String::from("yup"));
 
-        assert_eq!(mt.generate_proof(0), [4778819754073447529, 9268692565628018440, 3676438629107045207]);
-        assert_eq!(mt.generate_proof(1), [4778819754073447529, 9268692565628018440, 4506850079084802999]);
-        assert_eq!(mt.generate_proof(2), [4778819754073447529, 17075777630381501106, 1968634300370677998]);
-        assert_eq!(mt.generate_proof(3), [4778819754073447529, 17075777630381501106, 16260972211344176173]);
+        assert_eq!(mt.generate_proof(0), [(4778819754073447529, true), (9268692565628018440, true), (3676438629107045207, true)]);
+        assert_eq!(mt.generate_proof(1), [(4778819754073447529, true), (9268692565628018440, true), (4506850079084802999, false)]);
+        assert_eq!(mt.generate_proof(2), [(4778819754073447529, true), (17075777630381501106, false), (1968634300370677998, true)]);
+        assert_eq!(mt.generate_proof(3), [(4778819754073447529, true), (17075777630381501106, false), (16260972211344176173, false)]);
 
         Ok(())
     }
@@ -221,14 +233,14 @@ mod tests {
 
         println!("{:#?}", mt);
 
-        assert_eq!(mt.generate_proof(0), [1556255166675498662, 1292560851973962312, 9268692565628018440, 3676438629107045207]);
-        assert_eq!(mt.generate_proof(1), [1556255166675498662, 1292560851973962312, 9268692565628018440, 4506850079084802999]);
-        assert_eq!(mt.generate_proof(2), [1556255166675498662, 1292560851973962312, 17075777630381501106, 1968634300370677998]);
-        assert_eq!(mt.generate_proof(3), [1556255166675498662, 1292560851973962312, 17075777630381501106, 16260972211344176173]);
-        assert_eq!(mt.generate_proof(4), [1556255166675498662, 4778819754073447529, 6756623144268557643, 14416090190412621920]);
-        assert_eq!(mt.generate_proof(5), [1556255166675498662, 4778819754073447529, 6756623144268557643, 5587210449854392903]);
-        assert_eq!(mt.generate_proof(6), [1556255166675498662, 4778819754073447529, 10865386958110225586, 9147698590242891024]);
-        assert_eq!(mt.generate_proof(7), [1556255166675498662, 4778819754073447529, 10865386958110225586, 10714775279812270610]);
+        assert_eq!(mt.generate_proof(0), [(1556255166675498662, true), (1292560851973962312, true), (9268692565628018440, true), (3676438629107045207, true)]);
+        assert_eq!(mt.generate_proof(1), [(1556255166675498662, true), (1292560851973962312, true), (9268692565628018440, true), (4506850079084802999, false)]);
+        assert_eq!(mt.generate_proof(2), [(1556255166675498662, true), (1292560851973962312, true), (17075777630381501106, false), (1968634300370677998, true)]);
+        assert_eq!(mt.generate_proof(3), [(1556255166675498662, true), (1292560851973962312, true), (17075777630381501106, false), (16260972211344176173, false)]);
+        assert_eq!(mt.generate_proof(4), [(1556255166675498662, true), (4778819754073447529, false), (6756623144268557643, true), (14416090190412621920, true)]);
+        assert_eq!(mt.generate_proof(5), [(1556255166675498662, true), (4778819754073447529, false), (6756623144268557643, true), (5587210449854392903, false)]);
+        assert_eq!(mt.generate_proof(6), [(1556255166675498662, true), (4778819754073447529, false), (10865386958110225586, false), (9147698590242891024, true)]);
+        assert_eq!(mt.generate_proof(7), [(1556255166675498662, true), (4778819754073447529, false), (10865386958110225586, false), (10714775279812270610, false)]);
 
         Ok(())
     }
