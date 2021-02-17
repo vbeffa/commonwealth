@@ -96,14 +96,15 @@ impl MerkleTree {
         proof.resize_with(self.depth + 1, Default::default);
 
         let mut i = index;
-        for d in (0..self.depth).rev() {
+        // add non-root hashes
+        for d in (1..self.depth + 1).rev() {
             // println!("i: {} d: {} i % 2: {}", i, d, i % 2);
-            proof[d + 1] = if i % 2 == 0 { self.tree[d + 1][i + 1].hash } else { self.tree[d + 1][i - 1].hash };
+            proof[d] = if i % 2 == 0 { self.tree[d][i + 1].hash } else { self.tree[d][i - 1].hash };
             // println!("proof: {:#?}", proof);
             i = i / 2;
         }
 
-        // add root node
+        // add root hash
         proof[0] = self.root_hash;
 
         proof
