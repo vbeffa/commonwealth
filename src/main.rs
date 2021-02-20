@@ -126,7 +126,7 @@ impl MerkleTree {
     }
 
     fn verify(&self, data: &String, proof: &Vec<(u64, bool)>) -> bool {
-        let mut hash = calculate_hash(data); // self.tree[self.depth][index].hash;
+        let mut hash = calculate_hash(data);
 
         for d in (1..self.depth + 1).rev() {
             println!("{}", hash);

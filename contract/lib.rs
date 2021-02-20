@@ -4,23 +4,16 @@ use ink_lang as ink;
 
 #[ink::contract(dynamic_storage_allocator = true)]
 mod merkle {
-    // use std::collections::hash_map::DefaultHasher;
-    // use std::hash::Hasher;
     use ink_env::hash::{HashOutput, Sha2x256};
-    use ink_storage::Box as StorageBox;
     use ink_storage::{Box, Vec};
-    use ink_storage::collections::HashMap;
-    // use ink_env::hash::Sha2x256 as Hash;
 
     /// Defines the storage of a merkle contract.
     #[ink(storage)]
     pub struct MerkleTree {
         depth: u32,
         root_hash: Hash,
-        // data: Vec<Balance>,
-        data: Vec<String>,
+        data: Vec<Balance>,
         tree: Vec<Box<Vec<Hash>>>,
-        // tree2: HashMap<u32, Box<HashMap<u32, Hash>>>,
         index: u32,
     }
 
@@ -31,67 +24,45 @@ mod merkle {
             let mut mt = Self {
                 depth: depth,
                 root_hash: root_hash,
-                // data: Vec::with_capacity(usize::pow(2, depth as u32)),
-                // data: Vec::new(),
                 data: Vec::new(),
-                // tree: Vec::with_capacity(depth as usize + 1),
                 tree: Vec::new(),
-                // tree2: HashMap::new(),
                 index: 0,
             };
 
-            // // initialize data with zero values
-            // mt.data
-            //     .resize_with(usize::pow(2, depth as u32), Default::default);
-            // // allocate space for tree
-            // mt.tree.resize_with(depth as usize + 1, Default::default);
-            // // initialize leaf hash with zero values
-            // mt.tree[depth as usize].resize_with(usize::pow(2, depth as u32), || {
-            //     calculate_hash(&Balance::new())
-            // });
+            // // push root node
+            let mut root_row = Vec::new();
+            root_row.push(calculate_hash(Balance::from(0u128)));
+            let b = Box::new(root_row);
+            mt.tree.push(b);
 
             // println!("{:#?}", mt);
 
-            // push root node
-            let mut root_row = Vec::new();
-            root_row.push(calculate_hash(&String::from("")));
-            // let c: Box<u8> = Box::new(5);
-            let b = Box::new(root_row);
-            // mt.tree.push(b);
-            // mt.tree2.insert(0, calculate_hash(&String::from("")));
-
             // build intermediate nodes up to root
-            // for d in (0..depth).rev() {
-            //     println!("loop");
-            //     let mut t_row = Vec::new();
-            //     // mt.tree[d].resize_with(usize::pow(2, d as u32), Default::default);
-            //     for i in 0..(u32::pow(2, d)) {
-            //         println!("d = {} i = {}", d, i);
-            //         // mt.tree[d][i] = concat_hash(&mt.tree[d + 1][2 * i], &mt.tree[d + 1][2 * i + 1]);
-            //         t_row.push(concat_hash(
-            //             &mt.tree[d + 1][2 * i],
-            //             &mt.tree[d + 1][2 * i + 1],
-            //         ));
-            //         // println!("{:#?}", mt.tree[d]);
-            //     }
-            //     println!("{:#?}", mt.tree);
-            //     mt.tree.push(Box::new(t_row));
-            // }
+            for d in (0..depth).rev() {
+                let mut t_row = Vec::new();
+                for i in 0..(u32::pow(2, d)) {
+                    // println!("d = {} i = {}", d, i);
+                    t_row.push(concat_hash(
+                        &mt.tree[d + 1][2 * i],
+                        &mt.tree[d + 1][2 * i + 1],
+                    ));
+                    // println!("{:#?}", mt.tree[d]);
+                }
+                // println!("{:#?}", mt.tree);
+                mt.tree.push(Box::new(t_row));
+            }
 
             mt
         }
 
         /// Adds an element to the tree. Elements are added sequentially.
         #[ink(message)]
-        pub fn add_data(&mut self, data: &String) {
+        pub fn add_data(&mut self, data: Balance) {
             if self.index == u32::pow(2, self.depth as u32) {
                 return; // error
             }
-            // self.data[self.index] = data;
-            self.data.push(data.to_string());
-            self.tree[self.depth][self.index] = calculate_hash(&data);
-            // let mut row = self.tree2.get(self.depth).unwrap();
-            // row.insert(self.index, calculate_hash(&data));
+            self.data.push(data);
+            self.tree[self.depth][self.index] = calculate_hash(data);
 
             let mut i = self.index;
             let mut d = self.depth;
@@ -100,10 +71,6 @@ mod merkle {
                 d = d - 1;
                 self.tree[d][i] =
                     concat_hash(&self.tree[d + 1][2 * i], &self.tree[d + 1][2 * i + 1]);
-                // let mut row = self.tree2.get(d).unwrap();
-                // let left = self.tree2.get(d + 1).unwrap().get(2 * i).unwrap();
-                // let right = self.tree2.get(d + 1).unwrap().get(2 * i + 1).unwrap();
-                // row.insert(i, concat_hash(left, right));
             }
 
             self.index = self.index + 1;
@@ -111,12 +78,11 @@ mod merkle {
 
         /// Verifies that the data at position index is in the tree.
         #[ink(message)]
-        pub fn verify(&self, data: &String, index: u32) -> bool {
+        pub fn verify(&self, data: Balance, index: u32) -> bool {
             let proof = self.generate_proof(index);
-            let mut hash = calculate_hash(&data);
+            let mut hash = calculate_hash(data);
 
             for d in (1..self.depth + 1).rev() {
-                // println!("{}", hash);
                 if proof[d].1 {
                     hash = concat_hash(&hash, &proof[d].0);
                 } else {
@@ -143,52 +109,41 @@ mod merkle {
                 return Vec::new(); // error
             }
 
-            // let mut proof = Vec::with_capacity(self.depth as usize + 1);
             let mut proof = Vec::new();
-            // proof.resize_with(self.depth as usize + 1, Default::default);
+
+            // add root hash
+            proof.push((self.root_hash, true));
 
             let mut i = index;
             // add non-root hashes
             for d in (1..self.depth + 1).rev() {
                 // println!("i: {} d: {} i % 2: {}", i, d, i % 2);
-                proof[d] = if i % 2 == 0 {
+                let elem = if i % 2 == 0 {
                     (self.tree[d][i + 1], true)
                 } else {
                     (self.tree[d][i - 1], false)
                 };
+                proof.push(elem);
                 // println!("proof: {:#?}", proof);
                 i = i / 2;
             }
-
-            // add root hash
-            proof[0] = (self.root_hash, true);
 
             proof
         }
     }
 
-    /// Helper to calculate a hash value.
-    fn calculate_hash(data: &String) -> Hash {
+    // Helper to calculate a hash value.
+    fn calculate_hash(data: Balance) -> Hash {
         let mut output = <Sha2x256 as HashOutput>::Type::default(); // 256-bit buffer
-        ink_env::hash_encoded::<Sha2x256, _>(data, &mut output);
+        ink_env::hash_encoded::<Sha2x256, _>(&data, &mut output);
         Hash::from(output)
-
-        // let mut s = DefaultHasher::new();
-        // std::hash::Hash::hash(data, &mut s);
-        // s.finish()
     }
 
+    // Helper to concatenate two hashes.
     fn concat_hash(h1: &Hash, h2: &Hash) -> Hash {
-        // ink_env::Hash::hash(h1);
-        // // let t = ink_env::hash::CryptoHash::hash(&h1.0, output);
-        // ink_env::hash_bytes(h1, output);
-
         let mut output = <Sha2x256 as HashOutput>::Type::default(); // 256-bit buffer
-
-        // ink_env::hash_encoded::<Sha2x256, _>(&format!("{:#?}{:#?}", h1, h2), &mut output);
         ink_env::hash_encoded::<Sha2x256, _>(h1, &mut output);
         ink_env::hash_encoded::<Sha2x256, _>(h2, &mut output);
-
         Hash::from(output)
     }
 
@@ -207,7 +162,7 @@ mod merkle {
                 ]),
             );
 
-            mt.add_data(&String::from("foo"));
+            mt.add_data(Balance::from(10u128));
 
             assert_eq!(mt.tree[0][0], mt.root_hash);
 
